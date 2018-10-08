@@ -18,12 +18,15 @@ def createRandomBoard(low, high):
 def createEmptyBoard():
   return createRandomBoard(0,0 )
 
-
-def getConstructionMatrixForMove(move, workers, board):
+def getMovePosition(move):
   player = 'A' if 'A' in move else 'B'
   worker = 1 if 1 in move[player] else 0
-  #generate allowable constructions aounrd worker
   new_position = move[player][worker]
+  return player, worker, new_position
+
+def getConstructionMatrixForMove(move, workers, board):
+  player, worker, new_position = getMovePosition(move)
+  #generate allowable constructions aounrd worker
   i = new_position[0]
   j = new_position[1]
   allowable_constructions = createEmptyBoard()
@@ -117,6 +120,10 @@ def generateConstructionsFromMatrix( construction_matrix):
         construction[i][j] = 1
         constructions.append(construction)
   return constructions
+
+def isWinningMove( move, board):
+  player, worker, new_position = getMovePosition(move)
+  return board[new_position[0]][new_position[1]] == 3
 
 
 
@@ -217,6 +224,17 @@ class SantoriniTests(unittest.TestCase):
         for construction in constructions:
           self.assertEqual(construction.sum().sum() , 1)
 
+    def testMoveIsWinning(self):
+        board = pd.DataFrame([[1, 1, 2, 4, 3],
+                              [4, 2, 0, 0, 4],
+                              [4, 2, 3, 2, 4],
+                              [0, 4, 1, 0, 0],
+                              [3, 4, 0, 0, 1]])
+        workers = {'A': { 0: [3, 2] , 1: [0, 0] } , 'B': {0:[3, 2], 1:[4, 4] }}
+        move = {'A': {1:[ 1,1]}}
+        self.assertEqual(isWinningMove(move, board), False)
+        move = {'A': {0:[ 2,2]}}
+        self.assertEqual(isWinningMove(move, board), True)
 
 
 board = pd.DataFrame([[1, 1, 2, 4, 3],

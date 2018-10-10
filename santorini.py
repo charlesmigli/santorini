@@ -280,46 +280,69 @@ class SantoriniTests(unittest.TestCase):
         self.assertEqual(workers_board[0][0], '1A')
 
 
+def playTurn(player, workers, board):
+  scores = {}
+
+  game_status = 0
+  for worker in range(0,2):
+    move_matrix = getMoveMatrixForWorker(player, worker, workers, board)
+    moves = generateMovesFromMatrix(player, worker, move_matrix)
+    if len(moves) == 0:
+      game_status = -1
+    for i, move in enumerate(moves):
+      game_status = 0
+      construction_matrix = getConstructionMatrixForMove(move, workers, board)
+      constructions = generateConstructionsFromMatrix(construction_matrix)
+      if len(constructions) == 0:
+        game_status = -1
+      for j,construction in enumerate(constructions):
+        modified_board = board + construction
+        if isWinningMove(move, modified_board):
+          game_status = 1
+          scores[str(worker) + str(i) + str(j)] = 1000
+        modified_workers = updateWorkersPosition(move, workers)
+        opponent = 'A' if player == 'B' else 'B'
+        scores[str(worker) + str(i) + str(j)] = np.random.randint(1,100)
+        for opponent_worker in range(0,2):
+          move_matrix_opponent = getMoveMatrixForWorker(opponent, opponent_worker, modified_workers, modified_board)
+          opponent_moves = generateMovesFromMatrix(opponent, opponent_worker, move_matrix_opponent)
+          for ii, opponent_move in enumerate(opponent_moves):
+            is_winning_opponent = isWinningMove(opponent_move, modified_board)
+            if is_winning_opponent:
+              scores[str(worker) + str(i) + str(j)] = 0
+  best_combination = max(scores, key=scores.get)
+  worker_final = int(best_combination[0])
+  i_final = int(best_combination[1])
+  j_final = int(best_combination[2])
+  move_matrix = getMoveMatrixForWorker(player, worker_final, workers, board)
+  move_final = generateMovesFromMatrix(player, worker_final, move_matrix)[i_final]
+  construction_matrix = getConstructionMatrixForMove(move_final, workers, board)
+  construction_final = generateConstructionsFromMatrix(construction_matrix)[j_final]
+  modified_workers = updateWorkersPosition(move_final, workers)
+  modified_board = board + construction
+  return modified_workers, modified_board, game_status
 
 def playGame():
-  board = pd.DataFrame([[1, 1, 2, 4, 3],
-                        [4, 2, 0, 0, 4],
-                        [4, 2, 2, 2, 4],
-                        [0, 4, 1, 0, 0],
-                        [3, 4, 0, 0, 1]])
+  board = createEmptyBoard()
+  #board = pd.DataFrame([[1, 1, 2, 4, 3],
+                        #[4, 2, 0, 0, 4],
+                        #[4, 2, 2, 2, 4],
+                        #[0, 4, 1, 0, 0],
+                        #[3, 4, 0, 0, 1]])
   workers = {'A': { 0: [1, 1] , 1: [0, 0] } , 'B': {0:[3, 2], 1:[4, 4] }}
   player = 'A'
-  worker = 0
-  move_matrix = getMoveMatrixForWorker(player, worker, workers, board)
-  moves = generateMovesFromMatrix(player, worker, move_matrix)
-  displayWorkersOnBoard(workers, board)
-  for i, move in enumerate(moves):
-    construction_matrix = getConstructionMatrixForMove(move, workers, board)
-    constructions = generateConstructionsFromMatrix(construction_matrix)
-    for j,construction in enumerate(constructions):
-      modified_board = board + construction
-      modified_workers = updateWorkersPosition(move, workers)
-      opponent = 'A' if player == 'B' else 'B'
-      for opponent_worker in range(0,2):
-        move_matrix_opponent = getMoveMatrixForWorker(opponent, opponent_worker, modified_workers, modified_board)
-        opponent_moves = generateMovesFromMatrix(opponent, opponent_worker, move_matrix_opponent)
-        for ii, opponent_move in enumerate(opponent_moves):
-          is_winning = isWinningMove(opponent_move, modified_board)
-          if is_winning:
+  game_status = 0
+  count = 0
+  while(game_status == 0):
+    print(displayWorkersOnBoard(workers, board))
+    updated_workers, updated_board, game_status = playTurn(player, workers, board)
 
-            print('-----')
-            print('initial board')
-            print(displayWorkersOnBoard(workers, board))
-            #print(board)
-            #print(move)
-            #print(construction)
-            print('modified board')
-            print(displayWorkersOnBoard(modified_workers, modified_board))
-            #print(modified_board)
-            #print('ooponent move',opponent_move)
-            print('ooponent move')
-            modified_workers2 = updateWorkersPosition(opponent_move, modified_workers)
-            print(displayWorkersOnBoard(modified_workers2, modified_board))
+    workers = updated_workers
+    board = updated_board
+    player = 'A' if player == 'B' else 'B'
+    count += 1
+    print('played',count, game_status)
+
 
 
 def main():
@@ -327,3 +350,14 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+              #if is_winning:
+
+                #print('-----')
+                #print('initial board')
+                #print(displayWorkersOnBoard(workers, board))
+                #print('modified board')
+                #print(displayWorkersOnBoard(modified_workers, modified_board))
+                #print('ooponent move')
+                #modified_workers2 = updateWorkersPosition(opponent_move, modified_workers)
+                #print(displayWorkersOnBoard(modified_workers2, modified_board))

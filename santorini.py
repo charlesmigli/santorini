@@ -45,8 +45,7 @@ def getConstructionMatrixForMove(move, workers, board):
       allowable_constructions[new_i][new_j] = 1
 
   # can't build on worker's position
-  new_workers = workers.copy()
-  new_workers[player][worker] = new_position
+  new_workers = updateWorkersPosition(move, workers)
   for player in new_workers:
     for worker in new_workers[player]:
       allowable_constructions[new_workers[player][worker][0]][new_workers[player][worker][1]] = 0
@@ -126,6 +125,11 @@ def isWinningMove( move, board):
   return board[new_position[0]][new_position[1]] == 3
 
 
+def updateWorkersPosition( move, workers):
+  updates_workers = workers.copy()
+  player, worker, new_position = getMovePosition(move)
+  updates_workers[player][worker] = new_position
+  return updates_workers
 
 class SantoriniTests(unittest.TestCase):
     def testConstructionValidity(self):
@@ -235,6 +239,12 @@ class SantoriniTests(unittest.TestCase):
         self.assertEqual(isWinningMove(move, board), False)
         move = {'A': {0:[ 2,2]}}
         self.assertEqual(isWinningMove(move, board), True)
+
+    def testUpdateWorkersPosition(self):
+        workers = {'A': { 0: [3, 2] , 1: [0, 0] } , 'B': {0:[3, 2], 1:[4, 4] }}
+        move = {'A': {0:[ 1,1]}}
+        updates_workers = updateWorkersPosition(move, workers)
+        self.assertEqual(updates_workers['A'][0], [1,1])
 
 
 board = pd.DataFrame([[1, 1, 2, 4, 3],

@@ -2,6 +2,7 @@
 import unittest
 import pandas as pd
 import numpy as np
+import copy
 
 
 SHAPE = (5,5)
@@ -9,8 +10,14 @@ SHAPE = (5,5)
 # Data structure
 ## Board is  5x5 matrix [ [],[],... ]
 ## Workers is dictionnary with keys A / B and object with two keys of positions {'A': { 0: [3, 1] , 1: [0, 0] } , 'B': {0:[3, 2], 1:[4, 4]] }}
+## Worker position represents column first and then row
 ## Move is a dictionnary with key A or B with contains a dictionary with indice of worker moved its new position {'B': { 0: [4,3]}}
 ## Construction is a sparse matrix 5x5 [ [],[],... ] with only one 1 and then 0
+
+# pour chaque move + construction
+# voir si un move est gagnant. Si oui le faire.
+# evaluer tous les move + construction de l'autre pour voir si move gagnant. Si oui discard la combinaison
+# construire un scoring du board
 
 def createRandomBoard(low, high):
   return pd.DataFrame(np.random.random_integers(low, high, SHAPE))
@@ -126,10 +133,23 @@ def isWinningMove( move, board):
 
 
 def updateWorkersPosition( move, workers):
-  updates_workers = workers.copy()
+  updates_workers = copy.deepcopy(workers)
   player, worker, new_position = getMovePosition(move)
   updates_workers[player][worker] = new_position
   return updates_workers
+
+def displayWorkersOnBoard(workers, board):
+  board_with_workers = board.copy()
+  board_with_workers = board_with_workers.astype('str')
+  workerA0 = workers['A'][0]
+  workerA1 = workers['A'][1]
+  workerB0 = workers['B'][0]
+  workerB1 = workers['B'][1]
+  board_with_workers.at[workerA0[1],workerA0[0]] += 'A'
+  board_with_workers.at[workerA1[1],workerA1[0]] += 'A'
+  board_with_workers.at[workerB0[1],workerB0[0]] += 'B'
+  board_with_workers.at[workerB1[1],workerB1[0]] += 'B'
+  return board_with_workers
 
 class SantoriniTests(unittest.TestCase):
     def testConstructionValidity(self):
@@ -243,25 +263,63 @@ class SantoriniTests(unittest.TestCase):
     def testUpdateWorkersPosition(self):
         workers = {'A': { 0: [3, 2] , 1: [0, 0] } , 'B': {0:[3, 2], 1:[4, 4] }}
         move = {'A': {0:[ 1,1]}}
+        self.assertEqual(workers['A'][0], [3,2])
         updates_workers = updateWorkersPosition(move, workers)
         self.assertEqual(updates_workers['A'][0], [1,1])
+        self.assertEqual(workers['A'][0], [3,2])
+
+    def testDisplayWorkersOnBoard(self):
+        board = pd.DataFrame([[1, 1, 2, 4, 3],
+                              [4, 2, 0, 0, 4],
+                              [4, 2, 2, 2, 4],
+                              [0, 4, 1, 0, 0],
+                              [3, 4, 0, 0, 1]])
+        workers = {'A': { 0: [0, 3] , 1: [0, 0] } , 'B': {0:[3, 2], 1:[4, 3] }}
+        workers_board = displayWorkersOnBoard(workers, board)
+        self.assertEqual(workers_board[3][2], '2B')
+        self.assertEqual(workers_board[0][0], '1A')
 
 
-board = pd.DataFrame([[1, 1, 2, 4, 3],
-                      [4, 2, 0, 0, 4],
-                      [4, 2, 1, 2, 4],
-                      [0, 4, 1, 0, 0],
-                      [3, 4, 0, 0, 1]])
-workers = {'A': { 0: [3, 1] , 1: [0, 0] } , 'B': {0:[3, 2], 1:[4, 4] }}
-player = 'A'
-worker = 1
-move_matrix = getMoveMatrixForWorker(player, worker, workers, board)
-moves = generateMovesFromMatrix(player, worker, move_matrix)
-for move in moves:
-  construction_matrix = getConstructionMatrixForMove(move, workers, board)
-  #print('---')
-  #print(move)
-  #print(construction_matrix)
+
+def playGame():
+  board = pd.DataFrame([[1, 1, 2, 4, 3],
+                        [4, 2, 0, 0, 4],
+                        [4, 2, 2, 2, 4],
+                        [0, 4, 1, 0, 0],
+                        [3, 4, 0, 0, 1]])
+  workers = {'A': { 0: [1, 1] , 1: [0, 0] } , 'B': {0:[3, 2], 1:[4, 4] }}
+  player = 'A'
+  worker = 0
+  move_matrix = getMoveMatrixForWorker(player, worker, workers, board)
+  moves = generateMovesFromMatrix(player, worker, move_matrix)
+  displayWorkersOnBoard(workers, board)
+  for i, move in enumerate(moves):
+    construction_matrix = getConstructionMatrixForMove(move, workers, board)
+    constructions = generateConstructionsFromMatrix(construction_matrix)
+    for j,construction in enumerate(constructions):
+      modified_board = board + construction
+      modified_workers = updateWorkersPosition(move, workers)
+      opponent = 'A' if player == 'B' else 'B'
+      for opponent_worker in range(0,2):
+        move_matrix_opponent = getMoveMatrixForWorker(opponent, opponent_worker, modified_workers, modified_board)
+        opponent_moves = generateMovesFromMatrix(opponent, opponent_worker, move_matrix_opponent)
+        for ii, opponent_move in enumerate(opponent_moves):
+          is_winning = isWinningMove(opponent_move, modified_board)
+          if is_winning:
+
+            print('-----')
+            print('initial board')
+            print(displayWorkersOnBoard(workers, board))
+            #print(board)
+            #print(move)
+            #print(construction)
+            print('modified board')
+            print(displayWorkersOnBoard(modified_workers, modified_board))
+            #print(modified_board)
+            #print('ooponent move',opponent_move)
+            print('ooponent move')
+            modified_workers2 = updateWorkersPosition(opponent_move, modified_workers)
+            print(displayWorkersOnBoard(modified_workers2, modified_board))
 
 
 def main():

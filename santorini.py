@@ -7,6 +7,7 @@ import ipdb
 
 
 SHAPE = (5,5)
+WON_SCORE = 1000
 
 # Data structure
 ## Board is  5x5 matrix [ [],[],... ]
@@ -151,6 +152,25 @@ def displayWorkersOnBoard(workers, board):
   board_with_workers.at[workerB0[1],workerB0[0]] += 'B'
   board_with_workers.at[workerB1[1],workerB1[0]] += 'B'
   return board_with_workers
+
+
+def scoreBoardForPlayer(player, move, workers, board):
+  score = -1
+  if isWinningMove(move, board):
+    score = WON_SCORE
+  else:
+    w0Height = board.at[workers[player][0][1],workers[player][0][0]]
+    w1Height = board.at[workers[player][1][1],workers[player][1][0]]
+    score = 1 + w0Height + w1Height
+    opponent = 'A' if player == 'B' else 'B'
+    for opponent_worker in range(0,2):
+      move_matrix_opponent = getMoveMatrixForWorker(opponent, opponent_worker, workers, board)
+      opponent_moves = generateMovesFromMatrix(opponent, opponent_worker, move_matrix_opponent)
+      for ii, opponent_move in enumerate(opponent_moves):
+        is_winning_opponent = isWinningMove(opponent_move, board)
+        if is_winning_opponent:
+          score = 0
+  return score
 
 class SantoriniTests(unittest.TestCase):
     def testConstructionValidity(self):
@@ -297,20 +317,11 @@ def playTurn(player, workers, board):
       construction_count += len(constructions)
       for j,construction in enumerate(constructions):
         modified_board = board + construction
-        if isWinningMove(move, modified_board):
+        modified_workers = updateWorkersPosition(move, workers)
+        score = scoreBoardForPlayer(player, move, modified_workers, modified_board)
+        scores[str(worker) + str(i) + str(j)] = score
+        if score == WON_SCORE:
           game_status = 1
-          scores[str(worker) + str(i) + str(j)] = 1000
-        else:
-          scores[str(worker) + str(i) + str(j)] = np.random.randint(1,100)
-          modified_workers = updateWorkersPosition(move, workers)
-          opponent = 'A' if player == 'B' else 'B'
-          for opponent_worker in range(0,2):
-            move_matrix_opponent = getMoveMatrixForWorker(opponent, opponent_worker, modified_workers, modified_board)
-            opponent_moves = generateMovesFromMatrix(opponent, opponent_worker, move_matrix_opponent)
-            for ii, opponent_move in enumerate(opponent_moves):
-              is_winning_opponent = isWinningMove(opponent_move, modified_board)
-              if is_winning_opponent:
-                scores[str(worker) + str(i) + str(j)] = 0
 
   # if we can't move or build we lose
   if move_count == 0 or construction_count == 0:

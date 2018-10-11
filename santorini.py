@@ -3,6 +3,7 @@ import unittest
 import pandas as pd
 import numpy as np
 import copy
+import ipdb
 
 
 SHAPE = (5,5)
@@ -284,32 +285,40 @@ def playTurn(player, workers, board):
   scores = {}
 
   game_status = 0
+  construction_count = 0
+  move_count = 0
   for worker in range(0,2):
     move_matrix = getMoveMatrixForWorker(player, worker, workers, board)
     moves = generateMovesFromMatrix(player, worker, move_matrix)
-    if len(moves) == 0:
-      game_status = -1
+    move_count += len(moves)
     for i, move in enumerate(moves):
-      game_status = 0
       construction_matrix = getConstructionMatrixForMove(move, workers, board)
       constructions = generateConstructionsFromMatrix(construction_matrix)
-      if len(constructions) == 0:
-        game_status = -1
+      construction_count += len(constructions)
       for j,construction in enumerate(constructions):
         modified_board = board + construction
         if isWinningMove(move, modified_board):
           game_status = 1
           scores[str(worker) + str(i) + str(j)] = 1000
-        modified_workers = updateWorkersPosition(move, workers)
-        opponent = 'A' if player == 'B' else 'B'
-        scores[str(worker) + str(i) + str(j)] = np.random.randint(1,100)
-        for opponent_worker in range(0,2):
-          move_matrix_opponent = getMoveMatrixForWorker(opponent, opponent_worker, modified_workers, modified_board)
-          opponent_moves = generateMovesFromMatrix(opponent, opponent_worker, move_matrix_opponent)
-          for ii, opponent_move in enumerate(opponent_moves):
-            is_winning_opponent = isWinningMove(opponent_move, modified_board)
-            if is_winning_opponent:
-              scores[str(worker) + str(i) + str(j)] = 0
+        else:
+          scores[str(worker) + str(i) + str(j)] = np.random.randint(1,100)
+          modified_workers = updateWorkersPosition(move, workers)
+          opponent = 'A' if player == 'B' else 'B'
+          for opponent_worker in range(0,2):
+            move_matrix_opponent = getMoveMatrixForWorker(opponent, opponent_worker, modified_workers, modified_board)
+            opponent_moves = generateMovesFromMatrix(opponent, opponent_worker, move_matrix_opponent)
+            for ii, opponent_move in enumerate(opponent_moves):
+              is_winning_opponent = isWinningMove(opponent_move, modified_board)
+              if is_winning_opponent:
+                scores[str(worker) + str(i) + str(j)] = 0
+
+  # if we can't move or build we lose
+  if move_count == 0 or construction_count == 0:
+    game_status = -1
+    return workers, board, game_status
+
+  #if game_status == 1:
+    #ipdb.set_trace()
   best_combination = max(scores, key=scores.get)
   worker_final = int(best_combination[0])
   i_final = int(best_combination[1])
@@ -319,7 +328,7 @@ def playTurn(player, workers, board):
   construction_matrix = getConstructionMatrixForMove(move_final, workers, board)
   construction_final = generateConstructionsFromMatrix(construction_matrix)[j_final]
   modified_workers = updateWorkersPosition(move_final, workers)
-  modified_board = board + construction
+  modified_board = board + construction_final
   return modified_workers, modified_board, game_status
 
 def playGame():
@@ -334,14 +343,20 @@ def playGame():
   game_status = 0
   count = 0
   while(game_status == 0):
-    print(displayWorkersOnBoard(workers, board))
     updated_workers, updated_board, game_status = playTurn(player, workers, board)
+
+    print('player',player, ' playing. Total moves ',count)
+    if game_status == 1:
+      print('Player',player, ' won')
+    if game_status == -1:
+      player = 'A' if player == 'B' else 'B'
+      print('Player',player, ' won')
 
     workers = updated_workers
     board = updated_board
+    print(displayWorkersOnBoard(workers, board))
     player = 'A' if player == 'B' else 'B'
     count += 1
-    print('played',count, game_status)
 
 
 

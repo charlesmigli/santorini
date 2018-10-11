@@ -317,8 +317,6 @@ def playTurn(player, workers, board):
     game_status = -1
     return workers, board, game_status
 
-  #if game_status == 1:
-    #ipdb.set_trace()
   best_combination = max(scores, key=scores.get)
   worker_final = int(best_combination[0])
   i_final = int(best_combination[1])

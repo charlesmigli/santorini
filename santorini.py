@@ -364,13 +364,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-              #if is_winning:
-
-                #print('-----')
-                #print('initial board')
-                #print(displayWorkersOnBoard(workers, board))
-                #print('modified board')
-                #print(displayWorkersOnBoard(modified_workers, modified_board))
-                #print('ooponent move')
-                #modified_workers2 = updateWorkersPosition(opponent_move, modified_workers)
-                #print(displayWorkersOnBoard(modified_workers2, modified_board))
